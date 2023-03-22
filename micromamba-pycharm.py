@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+
+import sys
+import json
+import subprocess
+
+
+ENABLE_LOGGING = True
+
+
+def micromamba(*cmd, as_json=True):
+    if as_json:
+        cmd += ("--json",)
+    out = subprocess.check_output(("micromamba",) + cmd, text=True)
+    if as_json:
+        return json.loads(out)
+    else:
+        return out
+
+
+def print_json(data):
+    print(json.dumps(data))
+
+
+if ENABLE_LOGGING:
+  open("/tmp/conda-wrapper-log", "a").write(str(sys.argv[1:]) + "\n")
+
+if sys.argv[1:4] == ["info", "--envs", "--json"]:
+    base_env = micromamba("info", "--json")["base environment"]
+    print_json(
+        {
+            "envs_dirs": [base_env],
+            "conda_prefix": base_env,
+            "envs": micromamba("env", "list")["envs"],
+        }
+    )
+elif sys.argv[1] in ["run", "list", "create"]:
+    print(
+        micromamba(
+            *[x for x in sys.argv[1:] if x != "--no-capture-output"], as_json=False
+        )
+    )
+else:
+    raise NotImplementedError(str(sys.argv[1:]))
