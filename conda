@@ -34,6 +34,8 @@ if sys.argv[1:4] == ["info", "--envs", "--json"]:
             "envs": micromamba("env", "list")["envs"],
         }
     )
+elif sys.argv[1:4] == ["env", "list", "--json"]:
+    print(micromamba(*sys.argv[1:]))
 elif sys.argv[1] in ["run", "list", "create"]:
     print(
         micromamba(
