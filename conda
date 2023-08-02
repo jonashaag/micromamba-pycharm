@@ -9,9 +9,10 @@ ENABLE_LOGGING = True
 
 
 def micromamba(*cmd, as_json=True):
+    cmd = [x for x in cmd if x != "--no-capture-output"]
     if as_json:
-        cmd += ("--json",)
-    out = subprocess.check_output(("micromamba",) + cmd, text=True)
+        cmd.append("--json")
+    out = subprocess.check_output(["micromamba"] + cmd, text=True)
     if as_json:
         return json.loads(out)
     else:
@@ -23,7 +24,7 @@ def print_json(data):
 
 
 if ENABLE_LOGGING:
-  open("/tmp/conda-wrapper-log", "a").write(str(sys.argv[1:]) + "\n")
+    open("/tmp/conda-wrapper-log", "a").write(str(sys.argv[1:]) + "\n")
 
 if sys.argv[1:4] == ["info", "--envs", "--json"]:
     base_env = micromamba("info", "--json")["base environment"]
@@ -36,11 +37,13 @@ if sys.argv[1:4] == ["info", "--envs", "--json"]:
     )
 elif sys.argv[1:4] == ["env", "list", "--json"]:
     print(micromamba(*sys.argv[1:]))
-elif sys.argv[1] in ["run", "list", "create"]:
-    print(
-        micromamba(
-            *[x for x in sys.argv[1:] if x != "--no-capture-output"], as_json=False
-        )
-    )
+elif sys.argv[1] == "list":
+    out = micromamba(*sys.argv[1:], as_json=False)
+    lines = (l.strip() for l in out.splitlines())
+    ignore_lines = ("List of packages in environment", "Name ", "─")
+    lines = (l for l in lines if l and not l.startswith(ignore_lines))
+    print("\n".join(lines))
+elif sys.argv[1] in ["run", "create"]:
+    print(micromamba(*sys.argv[1:], as_json=False))
 else:
     raise NotImplementedError(str(sys.argv[1:]))
