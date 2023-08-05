@@ -38,12 +38,20 @@ if sys.argv[1:4] == ["info", "--envs", "--json"]:
 elif sys.argv[1:4] == ["env", "list", "--json"]:
     print(micromamba(*sys.argv[1:]))
 elif sys.argv[1] == "list":
-    out = micromamba(*sys.argv[1:], as_json=False)
-    lines = (l.strip() for l in out.splitlines())
-    ignore_lines = ("List of packages in environment", "Name ", "─")
-    lines = (l for l in lines if l and not l.startswith(ignore_lines))
-    print("\n".join(lines))
-elif sys.argv[1] in ["run", "create"]:
+    if sys.argv[-1] == "-e":
+        out = micromamba(*sys.argv[1:-1])
+        print(
+            "\n".join(
+                f'{pkg["name"]}={pkg["version"]}={pkg["build_string"]}' for pkg in out
+            )
+        )
+    else:
+        out = micromamba(*sys.argv[1:], as_json=False)
+        lines = (l.strip() for l in out.splitlines())
+        ignore_lines = ("List of packages in environment", "Name ", "─")
+        lines = (l for l in lines if l and not l.startswith(ignore_lines))
+        print("\n".join(lines))
+elif sys.argv[1] in ["run", "create", "install", "list"]:
     print(micromamba(*sys.argv[1:], as_json=False))
 else:
     raise NotImplementedError(str(sys.argv[1:]))
