@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import json
 import subprocess
@@ -8,50 +9,55 @@ import subprocess
 ENABLE_LOGGING = True
 
 
-def micromamba(*cmd, as_json=True):
+PASSTHROUGH_PREFIXES = [
+    ["env", "list", "--json"],
+    ["run"],
+    ["create"],
+    ["install"],
+    ["list"],
+]
+
+
+def micromamba(*cmd):
     cmd = [x for x in cmd if x != "--no-capture-output"]
-    if as_json:
-        cmd.append("--json")
-    out = subprocess.check_output(["micromamba"] + cmd, text=True)
-    if as_json:
-        return json.loads(out)
-    else:
-        return out
+    out = subprocess.check_output(["micromamba"] + cmd)
+    return out.decode(sys.getdefaultencoding())
+
+
+def micromamba_json(*cmd):
+    return json.loads(micromamba(*cmd, "--json"))
 
 
 def print_json(data):
-    print(json.dumps(data))
+    print(json.dumps(data, indent=4))
 
 
 if ENABLE_LOGGING:
     open("/tmp/conda-wrapper-log", "a").write(str(sys.argv[1:]) + "\n")
 
 if sys.argv[1:4] == ["info", "--envs", "--json"]:
-    base_env = micromamba("info", "--json")["base environment"]
+    base_env = micromamba_json("info", "--json")["base environment"]
     print_json(
         {
             "envs_dirs": [base_env],
             "conda_prefix": base_env,
-            "envs": micromamba("env", "list")["envs"],
+            "envs": micromamba_json("env", "list")["envs"],
         }
     )
-elif sys.argv[1:4] == ["env", "list", "--json"]:
-    print(micromamba(*sys.argv[1:]))
 elif sys.argv[1] == "list":
     if sys.argv[-1] == "-e":
-        out = micromamba(*sys.argv[1:-1])
+        out = micromamba_json(*sys.argv[1:-1])
         print(
             "\n".join(
                 f'{pkg["name"]}={pkg["version"]}={pkg["build_string"]}' for pkg in out
             )
         )
     else:
-        out = micromamba(*sys.argv[1:], as_json=False)
-        lines = (l.strip() for l in out.splitlines())
-        ignore_lines = ("List of packages in environment", "Name ", "─")
-        lines = (l for l in lines if l and not l.startswith(ignore_lines))
+        out = micromamba(*sys.argv[1:])
+        ignore_lines = ["List of packages in environment"]
+        lines = (l.strip() for l in out.splitlines() if l.startswith(" ") and not l.startswith("  Name"))
         print("\n".join(lines))
-elif sys.argv[1] in ["run", "create", "install", "list"]:
-    print(micromamba(*sys.argv[1:], as_json=False))
+elif any(sys.argv[1:len(prefix)+1] == prefix for prefix in PASSTHROUGH_PREFIXES):
+    os.execlp("micromamba", *sys.argv)
 else:
     raise NotImplementedError(str(sys.argv[1:]))
