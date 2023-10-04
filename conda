@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import traceback
@@ -39,7 +40,13 @@ def print_json(data):
 
 
 def main(args):
-    if args == ["info", "--envs", "--json"]:
+    if args == ["self-check"]:
+        if shutil.which("micromamba") is None:
+            print("'micromamba' not found, is it on the $PATH?", file=sys.stderr)
+            return 1
+        micromamba(["info"])
+        print("Self-check successful.", file=sys.stderr)
+    elif args == ["info", "--envs", "--json"]:
         base_env = micromamba_json(["info"])["base environment"]
         print_json(
             {
@@ -76,13 +83,15 @@ def main(args):
     else:
         raise NotImplementedError(str(args))
 
+    return 0
+
 
 if __name__ == "__main__":
     args = sys.argv[1:]
     if ENABLE_LOGGING:
         open("/tmp/conda-wrapper-log", "a").write(str(args) + "\n")
     try:
-        main(args)
+        sys.exit(main(args))
     except Exception:
         if ENABLE_LOGGING:
             open("/tmp/conda-wrapper-log", "a").write(traceback.format_exc())
