@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import traceback
 
 ENABLE_LOGGING = True
@@ -80,7 +81,7 @@ def main(args):
         os.execlp(
             "micromamba",
             "micromamba",
-            *(arg for arg in args if arg != "--no-capture-output"),
+            *(arg for arg in args if arg != "--no-capture-output")
         )
     else:
         raise NotImplementedError(str(args))
@@ -90,11 +91,12 @@ def main(args):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
+    logfile = os.path.join(tempfile.gettempdir(), "micromamba-pycharm.txt")
     if ENABLE_LOGGING:
-        open("/tmp/conda-wrapper-log", "a").write(str(args) + "\n")
+        open(logfile, "a").write(str(args) + "\n")
     try:
         sys.exit(main(args))
     except Exception:
         if ENABLE_LOGGING:
-            open("/tmp/conda-wrapper-log", "a").write(traceback.format_exc())
+            open(logfile, "a").write(traceback.format_exc())
         raise
