@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+from __future__ import print_function
+
 import json
+import locale
 import os
 import re
-import shutil
 import subprocess
 import sys
 import traceback
@@ -20,7 +22,7 @@ PASSTHROUGH_PREFIXES = [
 
 def micromamba(cmd):
     out = subprocess.check_output(["micromamba"] + cmd)
-    return out.decode(sys.getdefaultencoding())
+    return out.decode(locale.getpreferredencoding())
 
 
 def micromamba_json(cmd):
@@ -40,7 +42,9 @@ def print_json(data):
 
 def main(args):
     if args == ["self-check"]:
-        if shutil.which("micromamba") is None:
+        try:
+            micromamba(["--version"])
+        except subprocess.CalledProcessError:
             print("'micromamba' not found, is it on the $PATH?", file=sys.stderr)
             return 1
         micromamba(["info"])
@@ -61,8 +65,7 @@ def main(args):
             out = micromamba_json(args[:-1])
             print(
                 "\n".join(
-                    f'{pkg["name"]}={pkg["version"]}={pkg["build_string"]}'
-                    for pkg in out
+                    "{name}={version}={build_string}".format(**pkg) for pkg in out
                 )
             )
         else:
