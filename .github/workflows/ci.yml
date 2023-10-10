@@ -19,7 +19,9 @@ jobs:
         os: ['ubuntu-latest'] #, 'windows-latest', 'macos-latest']
     steps:
       - uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@25949dd7cbed1382ed14df19c63f04c72c72cd67
+      - uses: mamba-org/setup-micromamba@v1
         with:
+          environment-name: test-env
+          cache-environment: true
           create-args: pytest
       - run: pytest -v tests.py
