@@ -1,0 +1,22 @@
+name: CI
+on:
+  push:
+
+defaults:
+  run:
+    shell: bash -el {0}
+
+jobs:
+  tests:
+    name: Tests - Python ${{ matrix.python-version }} - ${{ matrix.os }}
+    timeout-minutes: 10
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['2.7', '3.12']
+        os: ['ubuntu-latest'] #, 'windows-latest', 'macos-latest']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@25949dd7cbed1382ed14df19c63f04c72c72cd67
+      - run: pytest -v tests.py
