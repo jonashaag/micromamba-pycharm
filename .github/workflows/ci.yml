@@ -15,8 +15,14 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['2.7', '3.12']
-        os: ['ubuntu-latest'] #, 'windows-latest', 'macos-latest']
+        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
     steps:
       - uses: actions/checkout@v4
-      - uses: mamba-org/setup-micromamba@25949dd7cbed1382ed14df19c63f04c72c72cd67
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: test-env
+          cache-environment: true
+          create-args: pytest
+      - name: Add micromamba to GITHUB_PATH
+        run: echo "${HOME}/micromamba-bin" >> "$GITHUB_PATH"
       - run: pytest -v tests.py
