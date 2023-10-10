@@ -1,8 +1,7 @@
-name: Tests
+name: CI
 on:
   push:
   pull_request:
-  workflow_dispatch:
 
 defaults:
   run:
