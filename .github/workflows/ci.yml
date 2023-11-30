@@ -19,4 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mamba-org/setup-micromamba@25949dd7cbed1382ed14df19c63f04c72c72cd67
+        with:
+          environment-name: test
+          extra-specs: pytest python=${{ matrix.python-version }}
       - run: pytest -v tests.py
