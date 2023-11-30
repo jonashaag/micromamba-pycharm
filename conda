@@ -45,7 +45,7 @@ def main(args):
     if args == ["self-check"]:
         try:
             micromamba(["--version"])
-        except subprocess.CalledProcessError:
+        except (FileNotFoundError, subprocess.CalledProcessError):
             print("'micromamba' not found, is it on the $PATH?", file=sys.stderr)
             return 1
         micromamba(["info"])
