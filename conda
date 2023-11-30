@@ -94,7 +94,10 @@ if __name__ == "__main__":
 
     if ENABLE_LOGGING:
         cache_home = os.getenv("XDG_CACHE_HOME") or "~/.cache"
-        os.makedirs(cache_home, exist_ok=True)
+        try:
+            os.makedirs(cache_home)
+        except FileExistsError:
+            pass
         logfile = os.path.join(cache_home, "micromamba-pycharm.log")
         open(logfile, "a").write("Attempting to run: " + str(args) + "\n")
 
