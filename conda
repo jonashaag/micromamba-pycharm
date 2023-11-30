@@ -91,9 +91,16 @@ def main(args):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    logfile = os.path.join(tempfile.gettempdir(), "micromamba-pycharm.txt")
+
     if ENABLE_LOGGING:
-        open(logfile, "a").write(str(args) + "\n")
+        cache_home = os.getenv("XDG_CACHE_HOME") or "~/.cache"
+        try:
+            os.makedirs(cache_home)
+        except OSError:
+            pass
+        logfile = os.path.join(cache_home, "micromamba-pycharm.log")
+        open(logfile, "a").write("Attempting to run: " + str(args) + "\n")
+
     try:
         sys.exit(main(args))
     except Exception:
