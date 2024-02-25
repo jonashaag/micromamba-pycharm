@@ -11,7 +11,7 @@ Add Micromamba support to PyCharm.
    set MAMBA_ROOT_PREFIX=xxx
    set PATH=%PATH%;yyy
    set MAMBA_EXE=zzz
-   python "C:\Users\pk5ls\micromamba-pycharm\conda" %*
+   python "**Absolute path** to `conda` of clone repository" %*
    ```
 
    - Set `MAMBA_ROOT_PREFIX` environment variable for micromamba (see [Micromamba Installation — documentation](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#windows) for more information about `MAMBA_ROOT_PREFIX`).
