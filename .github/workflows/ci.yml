@@ -7,7 +7,7 @@ defaults:
     shell: bash -el {0}
 
 jobs:
-  tests:
+  conda-tests:
     name: Tests - Python ${{ matrix.python-version }} - ${{ matrix.os }}
     timeout-minutes: 10
     runs-on: ${{ matrix.os }}
@@ -24,9 +24,82 @@ jobs:
       - uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: test-env
-          cache-environment: true
           create-args: pytest python=${{ matrix.python-version }}
+          init-shell: bash powershell
       - name: Add micromamba to GITHUB_PATH
         run: echo "${HOME}/micromamba-bin" >> "$GITHUB_PATH"
-      - run: pytest -v tests.py
-      - run: XDG_CACHE_HOME= pytest -v tests.py
+      - run: pytest -v conda_tests.py
+      - run: XDG_CACHE_HOME= pytest -v conda_tests.py
+
+  generate-bat-file-tests:
+    name: Tests - Generate bat file
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12']
+        os: [ 'ubuntu-latest', 'macos-latest' ]
+        include:
+          - os: windows-latest
+            test-tag: 'manually install micromamba & init powershell'
+            python-version: "3.12"
+          - os: windows-latest
+            test-tag: 'manually install micromamba & init cmd'
+            python-version: "3.12"
+          - os: windows-latest
+            test-tag: 'manually install micromamba & no init'
+            python-version: "3.12"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install pytest
+
+      - name: Manually install micromamba
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          cd $HOME
+          Invoke-WebRequest -Uri https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
+          7z x micromamba.tar.bz2; 7z x micromamba.tar
+          MOVE -Force Library\bin\micromamba.exe micromamba.exe
+
+      - name: Manually init powershell (Windows)
+        if: matrix.os == 'windows-latest' && matrix.test-tag == 'manually install micromamba & init powershell'
+        shell: pwsh
+        run: |
+          cd $HOME
+          $Env:MAMBA_ROOT_PREFIX = Join-Path $HOME\micromamba -ChildPath "micromambaenv"
+          .\micromamba.exe shell init -p "$Env:MAMBA_ROOT_PREFIX"
+
+      - name: Manually init CMD (Windows)
+        if: matrix.os == 'windows-latest' && matrix.test-tag == 'manually install micromamba & init cmd'
+        shell: pwsh
+        run: |
+          cd $HOME
+          $Env:MAMBA_ROOT_PREFIX = Join-Path $HOME\micromamba -ChildPath "micromambaenv"
+          cmd /c micromamba.exe shell init --shell=cmd.exe -p "$Env:MAMBA_ROOT_PREFIX"
+
+      - name: Install micromamba & Init micromamba (Ubuntu or macOS)
+        if: matrix.os != 'windows-latest'
+        uses: mamba-org/setup-micromamba@v1
+        with:
+          environment-name: test-env
+          cache-environment: true
+          create-args: python=${{ matrix.python-version }}
+          init-shell: bash
+
+      - name: Test on Windows
+        if: matrix.os == 'windows-latest'
+        shell: cmd
+        run: |
+          set MAMBA_ROOT_PREFIX_PYTEST=%USERPROFILE%\micromamba\micromambaenv
+          set MAMBA_EXE_PYTEST=%USERPROFILE%\micromamba.exe
+          pytest -v -rA -s generate_bat_file_tests.py
+
+      - name: Test on Ubuntu or macOS
+        if: matrix.os != 'windows-latest'
+        run: pytest -v generate_bat_file_tests.py
