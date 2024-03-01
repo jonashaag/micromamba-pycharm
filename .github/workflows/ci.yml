@@ -56,15 +56,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+      - run: pip install pytest
 
-      - name: Manually install micromamba (Windows)
+      - name: Manually install micromamba
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           cd $HOME
           Invoke-WebRequest -Uri https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
-          7z x micromamba.tar.bz2
-          7z x micromamba.tar
+          7z x micromamba.tar.bz2; 7z x micromamba.tar
           MOVE -Force Library\bin\micromamba.exe micromamba.exe
 
       - name: Manually init powershell (Windows)
@@ -72,7 +72,7 @@ jobs:
         shell: pwsh
         run: |
           cd $HOME
-          $Env:MAMBA_ROOT_PREFIX = Join-Path $HOME -ChildPath "micromambaenv"
+          $Env:MAMBA_ROOT_PREFIX = Join-Path $HOME\micromamba -ChildPath "micromambaenv"
           .\micromamba.exe shell init -p "$Env:MAMBA_ROOT_PREFIX"
 
       - name: Manually init CMD (Windows)
@@ -80,8 +80,8 @@ jobs:
         shell: pwsh
         run: |
           cd $HOME
-          $Env:MAMBA_ROOT_PREFIX = Join-Path $HOME -ChildPath "micromambaenv"
-          cmd /c micromamba.exe shell init --shell=cmd.exe --prefix="$Env:MAMBA_ROOT_PREFIX"
+          $Env:MAMBA_ROOT_PREFIX = Join-Path $HOME\micromamba -ChildPath "micromambaenv"
+          cmd /c micromamba.exe shell init --shell=cmd.exe -p "$Env:MAMBA_ROOT_PREFIX"
 
       - name: Install micromamba & Init micromamba (Ubuntu or macOS)
         if: matrix.os != 'windows-latest'
@@ -89,20 +89,17 @@ jobs:
         with:
           environment-name: test-env
           cache-environment: true
-          create-args: pytest python=${{ matrix.python-version }}
+          create-args: python=${{ matrix.python-version }}
           init-shell: bash
 
       - name: Test on Windows
         if: matrix.os == 'windows-latest'
-        shell: pwsh
+        shell: cmd
         run: |
-          $Env:MAMBA_ROOT_PREFIX_PYTEST=Join-Path $HOME -ChildPath "micromambaenv"
-          $Env:MAMBA_EXE_PYTEST=Join-Path $HOME -ChildPath "micromamba.exe"
-          pip install pytest
-          pytest -v generate_bat_file_tests.py
+          set MAMBA_ROOT_PREFIX_PYTEST=%USERPROFILE%\micromamba\micromambaenv
+          set MAMBA_EXE_PYTEST=%USERPROFILE%\micromamba.exe
+          pytest -v -rA -s generate_bat_file_tests.py
 
       - name: Test on Ubuntu or macOS
         if: matrix.os != 'windows-latest'
-        run: |
-          pip install pytest
-          pytest -v generate_bat_file_tests.py
+        run: pytest -v generate_bat_file_tests.py

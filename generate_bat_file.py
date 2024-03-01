@@ -8,12 +8,18 @@ import subprocess
 
 MAMBA_ROOT_PREFIX = None
 MAMBA_EXE = None
+VALID_PS = None
 
 
 def check_platform():
     if platform.system() != 'Windows':
         print('This script is for Windows only.')
         sys.exit(2)
+
+
+def manually_init_cmd():
+    print('CMD is not init. Will use {} init cmd!'.format(VALID_PS))
+    subprocess.check_output([VALID_PS, MAMBA_EXE, "shell", "init", "-s", "cmd.exe", "-r", MAMBA_ROOT_PREFIX])
 
 
 def get_prefix_exe_from_ps(ps_path):
@@ -28,7 +34,7 @@ def get_prefix_exe_from_ps(ps_path):
 
 
 def fetch_prefix_from_ps_init():
-    global MAMBA_ROOT_PREFIX, MAMBA_EXE
+    global MAMBA_ROOT_PREFIX, MAMBA_EXE, VALID_PS
     powershell_list = ["powershell", "pwsh", "pwsh-preview"]
     profile_prefix = "$PROFILE.CurrentUserAllHosts"
     for ps in powershell_list:
@@ -37,6 +43,7 @@ def fetch_prefix_from_ps_init():
                                           encoding=locale.getpreferredencoding()).strip()
             MAMBA_ROOT_PREFIX, MAMBA_EXE = get_prefix_exe_from_ps(out)
             if MAMBA_ROOT_PREFIX and MAMBA_EXE:
+                VALID_PS = ps
                 print('Found MAMBA_ROOT_PREFIX from PowerShell profile: {}'.format(MAMBA_ROOT_PREFIX))
                 print('Found MAMBA_EXE from PowerShell profile: {}'.format(MAMBA_EXE))
                 return True
@@ -67,7 +74,7 @@ def fetch_prefix_from_bat_init():
         reg.CloseKey(key)
         MAMBA_ROOT_PREFIX = os.path.dirname(os.path.dirname(mamba_hook_path)) if mamba_hook_path else None
         MAMBA_EXE = get_exe_from_bat(mamba_hook_path) if mamba_hook_path else None
-    except WindowsError:
+    except (FileNotFoundError, WindowsError):
         pass
     if MAMBA_ROOT_PREFIX and MAMBA_EXE:
         print('Found MAMBA_ROOT_PREFIX from registry: {}'.format(MAMBA_ROOT_PREFIX))
@@ -87,8 +94,12 @@ def manually_input_path_wizard():
 
 
 def resolve_micromamba_env_entry():
-    res = True if fetch_prefix_from_ps_init() else False
-    manually_input_path_wizard() if not res else None
+    if fetch_prefix_from_bat_init():
+        pass
+    elif fetch_prefix_from_ps_init():
+        manually_init_cmd()
+    else:
+        manually_input_path_wizard()
 
 
 def generate_bat_file():
@@ -103,7 +114,7 @@ def generate_bat_file():
         f.write('@set PATH=%PATH%;{}\n'.format(mamba_path))
         f.write('@CALL "{}" >nul 2>&1\n'.format(micromamba_bat_path))
         f.write('"{}" "{}" %*'.format(python_path, os.path.join(current_dir, 'conda')))
-    print('Successfully Generated micromamba.bat at {}'.format(os.path.abspath(bat_file)))
+    print('Successfully Generated conda.bat at {}'.format(os.path.abspath(bat_file)))
 
 
 if __name__ == '__main__':

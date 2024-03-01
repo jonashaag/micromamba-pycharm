@@ -60,3 +60,11 @@ def test_input_wizard_check(get_env):
     else:
         pytest.skip("Only available test in manually set mamba_root_prefix and mamba_exe!")
 
+
+def test_basic_call(get_env):
+    mamba_root_prefix, mamba_exe = get_env
+    if platform.system() != 'Windows':
+        pytest.skip("Only test on Windows!")
+    else:
+        call_generate_bat_file(mamba_root_prefix, mamba_exe)
+        subprocess.check_output(["conda.bat", "info", "--envs", "--json"])
